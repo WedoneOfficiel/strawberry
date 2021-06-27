@@ -50,6 +50,8 @@
 #include "core/settings.h"
 #include "collectionfilteroptions.h"
 #include "collectionmodel.h"
+#include "collectionfilter.h"
+#include "collectionquery.h"
 #include "savedgroupingmanager.h"
 #include "collectionfilterwidget.h"
 #include "groupbydialog.h"
@@ -62,6 +64,7 @@ CollectionFilterWidget::CollectionFilterWidget(QWidget *parent)
     : QWidget(parent),
       ui_(new Ui_CollectionFilterWidget),
       model_(nullptr),
+      filter_(nullptr),
       group_by_dialog_(new GroupByDialog(this)),
       groupings_manager_(nullptr),
       filter_age_menu_(nullptr),
@@ -74,8 +77,8 @@ CollectionFilterWidget::CollectionFilterWidget(QWidget *parent)
 
   ui_->setupUi(this);
 
-  QString available_fields = Song::kFtsColumns.join(QStringLiteral(", ")).replace(QRegularExpression(QStringLiteral("\\bfts")), QLatin1String(""));
-  available_fields += QStringLiteral(", ") + Song::kNumericalColumns.join(QStringLiteral(", "));
+  QString available_fields = Song::kTextSearchColumns.join(QStringLiteral(", "));
+  available_fields += QStringLiteral(", ") + Song::kNumericalSearchColumns.join(QStringLiteral(", "));
 
   ui_->search_field->setToolTip(
     QStringLiteral("<html><head/><body><p>") +
@@ -156,7 +159,7 @@ CollectionFilterWidget::CollectionFilterWidget(QWidget *parent)
 
 CollectionFilterWidget::~CollectionFilterWidget() { delete ui_; }
 
-void CollectionFilterWidget::Init(CollectionModel *model) {
+void CollectionFilterWidget::Init(CollectionModel *model, CollectionFilter *filter) {
 
   if (model_) {
     QObject::disconnect(model_, nullptr, this, nullptr);
@@ -169,6 +172,7 @@ void CollectionFilterWidget::Init(CollectionModel *model) {
   }
 
   model_ = model;
+  filter_ = filter;
 
   // Connect signals
   QObject::connect(model_, &CollectionModel::GroupingChanged, group_by_dialog_, &GroupByDialog::CollectionGroupingChanged);
@@ -215,6 +219,10 @@ void CollectionFilterWidget::SetSettingsPrefix(const QString &prefix) {
 
   settings_prefix_ = prefix;
 
+}
+
+void CollectionFilterWidget::setFilter(CollectionFilter *filter) {
+  filter_ = filter;
 }
 
 void CollectionFilterWidget::ReloadSettings() {
@@ -518,9 +526,6 @@ void CollectionFilterWidget::keyReleaseEvent(QKeyEvent *e) {
 
 void CollectionFilterWidget::FilterTextChanged(const QString &text) {
 
-  // Searching with one or two characters can be very expensive on the database even with FTS,
-  // so if there are a large number of songs in the database introduce a small delay before actually filtering the model,
-  // so if the user is typing the first few characters of something it will be quicker.
   const bool delay = (delay_behaviour_ == DelayBehaviour::AlwaysDelayed) || (delay_behaviour_ == DelayBehaviour::DelayedOnLargeLibraries && !text.isEmpty() && text.length() < 3 && model_->total_song_count() >= 100000);
 
   if (delay) {
@@ -535,9 +540,8 @@ void CollectionFilterWidget::FilterTextChanged(const QString &text) {
 
 void CollectionFilterWidget::FilterDelayTimeout() {
 
-  emit Filter(ui_->search_field->text());
   if (filter_applies_to_model_) {
-    model_->SetFilterText(ui_->search_field->text());
+    filter_->setFilterFixedString(ui_->search_field->text());
   }
 
 }

@@ -54,7 +54,7 @@ class CollectionModelTest : public ::testing::Test {
   void SetUp() override {
     database_ = make_shared<MemoryDatabase>(nullptr);
     backend_ = make_shared<CollectionBackend>();
-    backend_->Init(database_, nullptr, Song::Source::Collection, QLatin1String(SCollection::kSongsTable), QLatin1String(SCollection::kFtsTable), QLatin1String(SCollection::kDirsTable), QLatin1String(SCollection::kSubdirsTable));
+    backend_->Init(database_, nullptr, Song::Source::Collection, QLatin1String(SCollection::kSongsTable), QLatin1String(SCollection::kDirsTable), QLatin1String(SCollection::kSubdirsTable));
     model_ = make_unique<CollectionModel>(backend_, nullptr);
 
     added_dir_ = false;
@@ -108,7 +108,7 @@ TEST_F(CollectionModelTest, WithInitialArtists) {
   AddSong(QStringLiteral("Title"), QStringLiteral("Artist 1"), QStringLiteral("Album"), 123);
   AddSong(QStringLiteral("Title"), QStringLiteral("Artist 2"), QStringLiteral("Album"), 123);
   AddSong(QStringLiteral("Title"), QStringLiteral("Foo"), QStringLiteral("Album"), 123);
-  model_->Init(false);
+  model_->Init();
 
   ASSERT_EQ(5, model_sorted_->rowCount(QModelIndex()));
   EXPECT_EQ(QStringLiteral("A"), model_sorted_->index(0, 0, QModelIndex()).data().toString());
@@ -128,7 +128,7 @@ TEST_F(CollectionModelTest, CompilationAlbums) {
   song.set_ctime(0);
 
   AddSong(song);
-  model_->Init(false);
+  model_->Init();
   model_->fetchMore(model_->index(0, 0));
 
   ASSERT_EQ(1, model_->rowCount(QModelIndex()));
@@ -150,7 +150,7 @@ TEST_F(CollectionModelTest, NumericHeaders) {
   AddSong(QStringLiteral("Title"), QStringLiteral("2artist"), QStringLiteral("Album"), 123);
   AddSong(QStringLiteral("Title"), QStringLiteral("0artist"), QStringLiteral("Album"), 123);
   AddSong(QStringLiteral("Title"), QStringLiteral("zartist"), QStringLiteral("Album"), 123);
-  model_->Init(false);
+  model_->Init();
 
   ASSERT_EQ(6, model_sorted_->rowCount(QModelIndex()));
   EXPECT_EQ(QStringLiteral("0-9"), model_sorted_->index(0, 0, QModelIndex()).data().toString());
@@ -166,7 +166,7 @@ TEST_F(CollectionModelTest, MixedCaseHeaders) {
 
   AddSong(QStringLiteral("Title"), QStringLiteral("Artist"), QStringLiteral("Album"), 123);
   AddSong(QStringLiteral("Title"), QStringLiteral("artist"), QStringLiteral("Album"), 123);
-  model_->Init(false);
+  model_->Init();
 
   ASSERT_EQ(3, model_sorted_->rowCount(QModelIndex()));
   EXPECT_EQ(QStringLiteral("A"), model_sorted_->index(0, 0, QModelIndex()).data().toString());
@@ -178,7 +178,7 @@ TEST_F(CollectionModelTest, MixedCaseHeaders) {
 TEST_F(CollectionModelTest, UnknownArtists) {
 
   AddSong(QStringLiteral("Title"), QLatin1String(""), QStringLiteral("Album"), 123);
-  model_->Init(false);
+  model_->Init();
   model_->fetchMore(model_->index(0, 0));
 
   ASSERT_EQ(1, model_->rowCount(QModelIndex()));
@@ -194,7 +194,7 @@ TEST_F(CollectionModelTest, UnknownAlbums) {
 
   AddSong(QStringLiteral("Title"), QStringLiteral("Artist"), QLatin1String(""), 123);
   AddSong(QStringLiteral("Title"), QStringLiteral("Artist"), QStringLiteral("Album"), 123);
-  model_->Init(false);
+  model_->Init();
   model_->fetchMore(model_->index(0, 0));
 
   QModelIndex artist_index = model_->index(0, 0, QModelIndex());
@@ -228,7 +228,7 @@ TEST_F(CollectionModelTest, VariousArtistSongs) {
 
   for (int i=0 ; i < 4 ; ++i)
     AddSong(songs[i]);
-  model_->Init(false);
+  model_->Init();
 
   QModelIndex artist_index = model_->index(0, 0, QModelIndex());
   model_->fetchMore(artist_index);
@@ -250,7 +250,7 @@ TEST_F(CollectionModelTest, RemoveSongsLazyLoaded) {
   Song one = AddSong(QStringLiteral("Title 1"), QStringLiteral("Artist"), QStringLiteral("Album"), 123); one.set_id(1);
   Song two = AddSong(QStringLiteral("Title 2"), QStringLiteral("Artist"), QStringLiteral("Album"), 123); two.set_id(2);
   AddSong(QStringLiteral("Title 3"), QStringLiteral("Artist"), QStringLiteral("Album"), 123);
-  model_->Init(false);
+  model_->Init();
 
   // Lazy load the items
   QModelIndex artist_index = model_->index(0, 0, QModelIndex());
@@ -283,7 +283,7 @@ TEST_F(CollectionModelTest, RemoveSongsNotLazyLoaded) {
 
   Song one = AddSong(QStringLiteral("Title 1"), QStringLiteral("Artist"), QStringLiteral("Album"), 123); one.set_id(1);
   Song two = AddSong(QStringLiteral("Title 2"), QStringLiteral("Artist"), QStringLiteral("Album"), 123); two.set_id(2);
-  model_->Init(false);
+  model_->Init();
 
   // Remove the first two songs
   QSignalSpy spy_preremove(&*model_, &CollectionModel::rowsAboutToBeRemoved);
@@ -303,7 +303,7 @@ TEST_F(CollectionModelTest, RemoveEmptyAlbums) {
   Song one = AddSong(QStringLiteral("Title 1"), QStringLiteral("Artist"), QStringLiteral("Album 1"), 123); one.set_id(1);
   Song two = AddSong(QStringLiteral("Title 2"), QStringLiteral("Artist"), QStringLiteral("Album 2"), 123); two.set_id(2);
   Song three = AddSong(QStringLiteral("Title 3"), QStringLiteral("Artist"), QStringLiteral("Album 2"), 123); three.set_id(3);
-  model_->Init(false);
+  model_->Init();
 
   QModelIndex artist_index = model_->index(0, 0, QModelIndex());
   model_->fetchMore(artist_index);
@@ -328,7 +328,7 @@ TEST_F(CollectionModelTest, RemoveEmptyAlbums) {
 TEST_F(CollectionModelTest, RemoveEmptyArtists) {
 
   Song one = AddSong(QStringLiteral("Title"), QStringLiteral("Artist"), QStringLiteral("Album"), 123); one.set_id(1);
-  model_->Init(false);
+  model_->Init();
 
   // Lazy load the items
   QModelIndex artist_index = model_->index(0, 0, QModelIndex());
@@ -351,8 +351,8 @@ TEST_F(CollectionModelTest, RemoveEmptyArtists) {
 
 // Test to check that the container nodes are created identical and unique all through the model with all possible collection groupings.
 // model1 - Nodes are created from a complete reset done through lazy-loading.
-// model2 - Initial container nodes are created in SongsDiscovered.
-// model3 - All container nodes are created in SongsDiscovered.
+// model2 - Initial container nodes are created in SongsAdded.
+// model3 - All container nodes are created in SongsAdded.
 
 // WARNING: This test can take up to 30 minutes to complete.
 #if 0
@@ -567,9 +567,9 @@ TEST_F(CollectionModelTest, TestContainerNodes) {
         backend1 = make_unique<CollectionBackend>();
         backend2= make_unique<CollectionBackend>();
         backend3 = make_unique<CollectionBackend>();
-        backend1->Init(database1.get(), Song::Source::Collection, SCollection::kSongsTable, SCollection::kFtsTable, SCollection::kDirsTable, SCollection::kSubdirsTable);
-        backend2->Init(database2.get(), Song::Source::Collection, SCollection::kSongsTable, SCollection::kFtsTable, SCollection::kDirsTable, SCollection::kSubdirsTable);
-        backend3->Init(database3.get(), Song::Source::Collection, SCollection::kSongsTable, SCollection::kFtsTable, SCollection::kDirsTable, SCollection::kSubdirsTable);
+        backend1->Init(database1.get(), Song::Source::Collection, SCollection::kSongsTable, SCollection::kDirsTable, SCollection::kSubdirsTable);
+        backend2->Init(database2.get(), Song::Source::Collection, SCollection::kSongsTable, SCollection::kDirsTable, SCollection::kSubdirsTable);
+        backend3->Init(database3.get(), Song::Source::Collection, SCollection::kSongsTable, SCollection::kDirsTable, SCollection::kSubdirsTable);
         model1 = make_unique<CollectionModel>(backend1.get(), nullptr);
         model2 = make_unique<CollectionModel>(backend2.get(), nullptr);
         model3 = make_unique<CollectionModel>(backend3.get(), nullptr);
@@ -596,7 +596,7 @@ TEST_F(CollectionModelTest, TestContainerNodes) {
         ASSERT_EQ(model2->song_nodes().count(), 0);
         ASSERT_EQ(model3->song_nodes().count(), songs.count());
 
-        model1->Init(false);
+        model1->Init();
 
         model1->ExpandAll();
         model2->ExpandAll();

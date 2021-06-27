@@ -47,7 +47,7 @@ class CollectionBackendTest : public ::testing::Test {
   void SetUp() override {
     database_.reset(new MemoryDatabase(nullptr));
     backend_ = make_unique<CollectionBackend>();
-    backend_->Init(database_, nullptr, Song::Source::Collection, QLatin1String(SCollection::kSongsTable), QLatin1String(SCollection::kFtsTable), QLatin1String(SCollection::kDirsTable), QLatin1String(SCollection::kSubdirsTable));
+    backend_->Init(database_, nullptr, Song::Source::Collection, QLatin1String(SCollection::kSongsTable), QLatin1String(SCollection::kDirsTable), QLatin1String(SCollection::kSubdirsTable));
   }
 
   static Song MakeDummySong(int directory_id) {
@@ -132,7 +132,7 @@ class SingleSong : public CollectionBackendTest {
   }
 
   void AddDummySong() {
-    QSignalSpy added_spy(&*backend_, &CollectionBackend::SongsDiscovered);
+    QSignalSpy added_spy(&*backend_, &CollectionBackend::SongsAdded);
     QSignalSpy deleted_spy(&*backend_, &CollectionBackend::SongsDeleted);
 
     // Add the song
@@ -266,7 +266,7 @@ TEST_F(SingleSong, UpdateSong) {
   new_song.set_title(QStringLiteral("A different title"));
 
   QSignalSpy deleted_spy(&*backend_, &CollectionBackend::SongsDeleted);
-  QSignalSpy added_spy(&*backend_, &CollectionBackend::SongsDiscovered);
+  QSignalSpy added_spy(&*backend_, &CollectionBackend::SongsAdded);
 
   backend_->AddOrUpdateSongs(SongList() << new_song);
 
@@ -389,7 +389,7 @@ TEST_F(TestUrls, TestUrls) {
 
   }
 
-  QSignalSpy spy(&*backend_, &CollectionBackend::SongsDiscovered);
+  QSignalSpy spy(&*backend_, &CollectionBackend::SongsAdded);
 
   backend_->AddOrUpdateSongs(songs);
   if (HasFatalFailure()) return;
@@ -474,7 +474,7 @@ TEST_F(UpdateSongsBySongID, UpdateSongsBySongID) {
 
     }
 
-    QSignalSpy spy(&*backend_, &CollectionBackend::SongsDiscovered);
+    QSignalSpy spy(&*backend_, &CollectionBackend::SongsAdded);
 
     backend_->UpdateSongsBySongID(songs);
 
@@ -495,7 +495,7 @@ TEST_F(UpdateSongsBySongID, UpdateSongsBySongID) {
     SongMap songs;
     {
       QSqlDatabase db(database_->Connect());
-      CollectionQuery query(db, QLatin1String(SCollection::kSongsTable), QLatin1String(SCollection::kFtsTable));
+      CollectionQuery query(db, QLatin1String(SCollection::kSongsTable));
       EXPECT_TRUE(backend_->ExecCollectionQuery(&query, songs));
     }
 
@@ -512,7 +512,7 @@ TEST_F(UpdateSongsBySongID, UpdateSongsBySongID) {
   }
 
   {  // Remove some songs
-    QSignalSpy spy1(&*backend_, &CollectionBackend::SongsDiscovered);
+    QSignalSpy spy1(&*backend_, &CollectionBackend::SongsAdded);
     QSignalSpy spy2(&*backend_, &CollectionBackend::SongsDeleted);
 
     SongMap songs;
@@ -558,7 +558,7 @@ TEST_F(UpdateSongsBySongID, UpdateSongsBySongID) {
 
   {  // Update some songs
     QSignalSpy spy1(&*backend_, &CollectionBackend::SongsDeleted);
-    QSignalSpy spy2(&*backend_, &CollectionBackend::SongsDiscovered);
+    QSignalSpy spy2(&*backend_, &CollectionBackend::SongsAdded);
 
     SongMap songs;
 
